@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-/* eslint-disable no-unused-vars */
+
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const User = require('./model/userModel');
 const passport = require('passport');
@@ -19,8 +19,8 @@ passport.use(
       } else {
         return done(null, false);
       }
-    } catch (error) {
-      return done(error, false);
+    } catch (err) {
+      return done(err, false);
     }
   })
 );
