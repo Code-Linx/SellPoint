@@ -55,6 +55,11 @@ class Email {
   async sendVerificationSuccess() {
     await this.send('verificationSuccess', 'Email Verification Successful!');
   }
+
+  // Send password reset code email
+  async sendPasswordReset() {
+    await this.send('sendResetCode', 'Your Password Reset Code');
+  }
 }
 
 module.exports = Email;

@@ -7,6 +7,8 @@ const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const userRouter = require('./routes/userRoutes');
+const passport = require('passport');
+const passportConfig = require('./passportConfig');
 const app = express();
 
 app.use(express.json());
@@ -21,6 +23,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 if ((process.env.NODE_ENV = 'development')) {
   app.use(morgan('dev'));
 }
+
+// Initialize passport
+app.use(passport.initialize());
+
+// Call the passport config function to use the strategy
+passportConfig(passport);
 
 app.use('/api/v1/user', userRouter);
 app.all('*', (req, res, next) => {
