@@ -28,12 +28,13 @@ class Email {
     });
   }
 
-  async send(template, subject) {
+  async send(template, subject, data = {}) {
     // 1) Render HTML based on a pug template
     const html = pug.renderFile(`${__dirname}/../views/email/${template}.pug`, {
       name: this.name,
       url: this.url,
       subject,
+      ...data, // Spread the additional data into the template variables
     });
 
     // 2) Define Email Options
@@ -59,6 +60,14 @@ class Email {
   // Send password reset code email
   async sendPasswordReset() {
     await this.send('sendResetCode', 'Your Password Reset Code');
+  }
+
+  // Method to send the order receipt
+  async sendReceipt(items, total, currencySymbol) {
+    await this.send('receipt', 'Your Order Receipt', {
+      items,
+      total: `${currencySymbol}${total.toFixed(2)}`,
+    });
   }
 }
 

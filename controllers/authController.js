@@ -160,6 +160,7 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
+  // Use Passport to authenticate the JWT
   passport.authenticate('jwt', { session: false }, async (err, user, info) => {
     if (err || !user) {
       return next(
@@ -170,7 +171,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     // Attach the authenticated user to the request object
     req.user = user;
 
-    // 1) Check if the user still exists
+    // 1) Check if the user still exists in the database
     const currentUser = await User.findById(req.user._id);
     if (!currentUser) {
       return next(
@@ -178,12 +179,8 @@ exports.protect = catchAsync(async (req, res, next) => {
       );
     }
 
-    // 2) Extract the JWT token from the authorization header
-    const token = req.headers.authorization.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // 3) Check if user changed password after the token was issued
-    if (currentUser.changedPasswordAfter(decoded.iat)) {
+    // 2) Check if user changed password after the token was issued
+    if (currentUser.changedPasswordAfter(req.user.iat)) {
       return next(
         new AppError(
           'User recently changed password! Please log in again.',
@@ -192,7 +189,7 @@ exports.protect = catchAsync(async (req, res, next) => {
       );
     }
 
-    // Attach the user to res.locals to access user data in views
+    // Attach the user to res.locals to access user data in views (optional)
     res.locals.user = currentUser;
 
     // Proceed to the next middleware or route handler
@@ -200,6 +197,17 @@ exports.protect = catchAsync(async (req, res, next) => {
   })(req, res, next);
 });
 
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'loggedout', {
+    expires: new Date(Date.now() + 10 * 1000), // Set the token to expire in 10 seconds
+    httpOnly: true,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'You have been logged out!',
+  });
+};
 exports.resetpassword = catchAsync(async (req, res, next) => {
   // 1. Find the user based on the email
   const user = await User.findOne({ email: req.body.email });
@@ -288,6 +296,17 @@ exports.verifyResetCode = catchAsync(async (req, res, next) => {
     message: 'Password has been reset successfully.',
   });
 });
+
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+    next();
+  };
+};
 
 // exports.updatePassword = catchAsync(async (req, res, next) => {
 //   console.log('Request body:', req.body); // Log the incoming request body

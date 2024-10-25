@@ -1,0 +1,34 @@
+doctype html
+html
+  head
+    meta(charset="UTF-8")
+    title Order Receipt
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .receipt-item {
+        margin-bottom: 10px;
+      }
+  body
+    .container
+      h1 Order Receipt
+      p Thank you for your purchase! Here are your order details:
+      if items && items.length
+        each item in items
+          .receipt-item
+            h3 #{item.name}
+            p Quantity: #{item.quantity}
+            p Price: #{item.price}
+      else
+        p No items found in the order.
+      h2 Total: #{total}
+      p If you have any questions, feel free to contact us.

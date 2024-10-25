@@ -1,4 +1,4 @@
-# SellPoint
+# SellPoint : POS BACKEND API
 
 ![sellpoint api](https://img.shields.io/badge/Node.js-Express.js-brightgreen)
 
