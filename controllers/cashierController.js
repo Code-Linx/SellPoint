@@ -82,8 +82,7 @@ exports.getCashierDashboardData = catchAsync(async (req, res) => {
   const orders = await Order.find({ cashier: cashierId }); // Filter orders by cashier ID
 
   // Calculate total sales amount from orders
-  const totalSales = orders.reduce((acc, order) => acc + order.total, 0); // Adjust according to your order structure
-
+  const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
   // Prepare data to send to the dashboard
   const dashboardData = {
     items,

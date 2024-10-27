@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const userRouter = require('./routes/userRoutes');
+const adminRouter = require('./routes/adminRoutes');
 const passport = require('passport');
 const passportConfig = require('./passportConfig');
 const app = express();
@@ -24,7 +25,6 @@ if ((process.env.NODE_ENV = 'development')) {
   app.use(morgan('dev'));
 }
 
-
 // Initialize passport
 app.use(passport.initialize());
 
@@ -32,6 +32,7 @@ app.use(passport.initialize());
 passportConfig(passport);
 
 app.use('/api/v1/user', userRouter);
+app.use('/api/v1/admin', adminRouter);
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });

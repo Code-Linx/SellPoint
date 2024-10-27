@@ -69,6 +69,21 @@ class Email {
       total: `${currencySymbol}${total.toFixed(2)}`,
     });
   }
+
+  async sendSalesReport(startDate, endDate, orderHistory, reportData) {
+    await this.send(
+      'salesReport',
+      `Sales Report from ${startDate.toDateString()} to ${endDate.toDateString()}`,
+      {
+        orderHistory,
+        totalSales: reportData.totalSales,
+        totalOrders: reportData.totalOrders,
+        firstName: this.name,
+        startDate: startDate, // Pass as a Date object
+        endDate: endDate, // Pass as a Date object
+      }
+    );
+  }
 }
 
 module.exports = Email;

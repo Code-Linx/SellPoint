@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-const User = require('../model/userModel');
+const Admin = require('../model/adminModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const jwt = require('jsonwebtoken');
@@ -42,13 +42,13 @@ const createSendToken = (user, statusCode, res) => {
 exports.register = catchAsync(async (req, res, next) => {
   console.log(req.body);
   // 1. Check if the user already exists
-  const user = await User.findOne({ email: req.body.email });
-  if (user) {
-    return next(new AppError('User already exists', 400));
+  const admin = await Admin.findOne({ email: req.body.email });
+  if (admin) {
+    return next(new AppError('admin already exists', 400));
   }
 
   // 2. Create new user without saving it yet
-  const newUser = await User.create({
+  const newUser = await Admin.create({
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
@@ -59,7 +59,7 @@ exports.register = catchAsync(async (req, res, next) => {
   const verificationCode = await newUser.createEmailVerificationCode();
 
   // 4. Send Verification Code (via email or any other method)
-  // await new Email(newUser, verificationCode).sendEmailVerification();
+  await new Email(newUser, verificationCode).sendEmailVerification();
 
   // 5. Save the user with the new fields
   await newUser.save({ validateBeforeSave: false }); // Save the user again to persist the verification code and expiration
@@ -81,27 +81,29 @@ exports.resendVerificationCode = catchAsync(async (req, res, next) => {
   const { email } = req.body;
 
   // 1. Find the user by their email
-  const user = await User.findOne({ email });
+  const admin = await Admin.findOne({ email });
 
-  if (!user) {
-    return next(new AppError('There is no user with that email address.', 404));
+  if (!admin) {
+    return next(
+      new AppError('There is no admin with that email address.', 404)
+    );
   }
 
-  // 2. Check if the user is already verified
-  if (user.isVerified) {
-    return next(new AppError('This user is already verified.', 400));
+  // 2. Check if the admin is already verified
+  if (admin.isVerified) {
+    return next(new AppError('This admin is already verified.', 400));
   }
 
   // 3. Generate a new email verification code
-  const newVerificationCode = await user.createEmailVerificationCode();
+  const newVerificationCode = await admin.createEmailVerificationCode();
 
-  // 4. Save the user with the new verification code and updated expiration time
-  await user.save({ validateBeforeSave: false });
+  // 4. Save the admin with the new verification code and updated expiration time
+  await admin.save({ validateBeforeSave: false });
 
   // 5. Send the new verification code via email (or SMS, etc.)
-  //await new Email(user, newVerificationCode).sendEmailVerification(); // Implement the email sending logic
+  await new Email(admin, newVerificationCode).sendEmailVerification(); // Implement the email sending logic
 
-  // 6. Send a response back to the user
+  // 6. Send a response back to the admin
   res.status(200).json({
     status: 'success',
     message: 'Verification code sent! Please check your email.',
@@ -111,11 +113,11 @@ exports.resendVerificationCode = catchAsync(async (req, res, next) => {
 exports.verifyEmail = catchAsync(async (req, res, next) => {
   const { code } = req.body;
 
-  // 1. Find the user based on the email
-  const user = await User.findOne({ email: req.body.email });
+  // 1. Find the admin based on the email
+  const admin = await Admin.findOne({ email: req.body.email });
 
-  if (!user) {
-    return next(new AppError('User not found', 404));
+  if (!admin) {
+    return next(new AppError('admin not found', 404));
   }
 
   // 2. Hash the provided code and check if it matches the stored hashed code
@@ -123,17 +125,17 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
   // 3. Check if the hashed code matches and hasn't expired
   if (
-    user.emailVerificationCode !== hashedCode ||
-    Date.now() > user.emailVerificationExpires
+    admin.emailVerificationCode !== hashedCode ||
+    Date.now() > admin.emailVerificationExpires
   ) {
     return next(new AppError('Invalid or expired verification code', 400));
   }
 
   // 4. If valid, mark the email as verified and clear the code
-  user.isVerified = true;
-  user.emailVerificationCode = undefined; // Clear the verification code
-  user.emailVerificationExpires = undefined; // Clear the expiration time
-  await user.save({ validateBeforeSave: false });
+  admin.isVerified = true;
+  admin.emailVerificationCode = undefined; // Clear the verification code
+  admin.emailVerificationExpires = undefined; // Clear the expiration time
+  await admin.save({ validateBeforeSave: false });
 
   // 5. Send success response
   res.status(200).json({
@@ -148,53 +150,63 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!email || !password)
     return next(new AppError('Please Provide Email and Password!', 401));
   //2. Check if user exists
-  const user = await User.findOne({ email }).select('+password');
-  if (!user) return next(new AppError('User Does not exist', 404));
+  const admin = await Admin.findOne({ email }).select('+password');
+  if (!admin) return next(new AppError('User Does not exist', 404));
   //3 compare pasword
-  if (!(await user.correctPassword(password, user.password)))
+  if (!(await admin.correctPassword(password, admin.password)))
     return next(new AppError('Invalid credentials', 401));
   //4 check is user email is verified
-  if (!user.isVerified)
+  if (!admin.isVerified)
     return next(new AppError('Please verify your email', 403));
-  createSendToken(user, 200, res);
+  createSendToken(admin, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
   // Use Passport to authenticate the JWT
-  passport.authenticate('user', { session: false }, async (err, user, info) => {
-    if (err || !user) {
-      return next(
-        new AppError('You are not logged in! Please log in to get access.', 401)
-      );
+  passport.authenticate(
+    'admin',
+    { session: false },
+    async (err, user, info) => {
+      if (err || !user) {
+        return next(
+          new AppError(
+            'You are not logged in! Please log in to get access.',
+            401
+          )
+        );
+      }
+
+      // Attach the authenticated user to the request object
+      req.user = user;
+
+      // 1) Check if the user still exists in the database
+      const currentUser = await Admin.findById(req.user._id);
+      if (!currentUser) {
+        return next(
+          new AppError(
+            'The user belonging to this token no longer exists.',
+            404
+          )
+        );
+      }
+
+      // 2) Check if user changed password after the token was issued
+      if (currentUser.changedPasswordAfter(req.user.iat)) {
+        return next(
+          new AppError(
+            'User recently changed password! Please log in again.',
+            401
+          )
+        );
+      }
+
+      // Attach the user to res.locals to access user data in views (optional)
+      res.locals.user = currentUser;
+
+      // Proceed to the next middleware or route handler
+      next();
     }
-
-    // Attach the authenticated user to the request object
-    req.user = user;
-
-    // 1) Check if the user still exists in the database
-    const currentUser = await User.findById(req.user._id);
-    if (!currentUser) {
-      return next(
-        new AppError('The user belonging to this token no longer exists.', 404)
-      );
-    }
-
-    // 2) Check if user changed password after the token was issued
-    if (currentUser.changedPasswordAfter(req.user.iat)) {
-      return next(
-        new AppError(
-          'User recently changed password! Please log in again.',
-          401
-        )
-      );
-    }
-
-    // Attach the user to res.locals to access user data in views (optional)
-    res.locals.user = currentUser;
-
-    // Proceed to the next middleware or route handler
-    next();
-  })(req, res, next);
+  )(req, res, next);
 });
 
 exports.logout = (req, res) => {
@@ -210,30 +222,30 @@ exports.logout = (req, res) => {
 };
 exports.resetpassword = catchAsync(async (req, res, next) => {
   // 1. Find the user based on the email
-  const user = await User.findOne({ email: req.body.email });
+  const admin = await Admin.findOne({ email: req.body.email });
 
-  if (!user) {
-    return next(new AppError('User not found', 404));
+  if (!admin) {
+    return next(new AppError('admin not found', 404));
   }
 
   // 2) Generate the reset code
-  const resetCode = user.createPasswordResetCode();
+  const resetCode = admin.createPasswordResetCode();
 
   // 3) Save the reset code and expiration to the user document
-  await user.save({ validateBeforeSave: false });
+  await admin.save({ validateBeforeSave: false });
 
   // 4) Send the reset code to the user's email
   try {
-    await new Email(user, resetCode).sendPasswordReset();
+    await new Email(admin, resetCode).sendPasswordReset();
     res.status(200).json({
       status: 'success',
       message: 'Reset code sent to email!',
     });
   } catch (err) {
     console.log('error:', err);
-    user.passwordResetCode = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save({ validateBeforeSave: false });
+    admin.passwordResetCode = undefined;
+    admin.passwordResetExpires = undefined;
+    await admin.save({ validateBeforeSave: false });
 
     return next(
       new AppError(
@@ -252,18 +264,20 @@ exports.passwordResetLimiter = rateLimit({
 
 // Controller method to handle requesting a new reset code
 exports.requestNewCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email }); // Get the email from the request body
+  const admin = await Admin.findOne({ email: req.body.email }); // Get the email from the request body
 
-  if (!user) {
-    return next(new AppError('There is no user with this email address.', 404));
+  if (!admin) {
+    return next(
+      new AppError('There is no admin with this email address.', 404)
+    );
   }
 
   // Create a new reset code and expiration
-  const resetCode = user.createPasswordResetCode(); // Assuming you have this method implemented
-  await user.save({ validateBeforeSave: false });
+  const resetCode = admin.createPasswordResetCode(); // Assuming you have this method implemented
+  await admin.save({ validateBeforeSave: false });
 
   // Send the reset code via email (implement your own email sending logic here)
-  await new Email(user, resetCode).sendPasswordReset();
+  await new Email(admin, resetCode).sendPasswordReset();
 
   res.status(200).json({
     status: 'success',
@@ -273,22 +287,22 @@ exports.requestNewCode = catchAsync(async (req, res, next) => {
 
 exports.verifyResetCode = catchAsync(async (req, res, next) => {
   // 1) Find the user by reset code and ensure the code has not expired
-  const user = await User.findOne({
+  const admin = await Admin.findOne({
     passwordResetCode: req.body.resetCode,
     passwordResetExpires: { $gt: Date.now() }, // Check if code hasn't expired
   });
 
-  if (!user) {
+  if (!admin) {
     return next(new AppError('Reset code is invalid or has expired.', 400));
   }
 
   // 2) If code is valid, update the password
-  user.password = req.body.password;
-  user.passwordConfirm = req.body.passwordConfirm;
-  user.passwordResetCode = undefined; // Clear the reset code
-  user.passwordResetExpires = undefined; // Clear the expiration time
+  admin.password = req.body.password;
+  admin.passwordConfirm = req.body.passwordConfirm;
+  admin.passwordResetCode = undefined; // Clear the reset code
+  admin.passwordResetExpires = undefined; // Clear the expiration time
 
-  await user.save();
+  await admin.save();
 
   // 3) Send success response and possibly log the user in again (optional)
   res.status(200).json({
@@ -307,32 +321,3 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
-
-// exports.updatePassword = catchAsync(async (req, res, next) => {
-//   console.log('Request body:', req.body); // Log the incoming request body
-
-//   // 1) Find the user based on the reset code
-//   const user = await User.findOne({
-//     passwordResetCode: req.body.resetCode,
-//     passwordResetExpires: { $gt: Date.now() }, // Ensure the code hasn't expired
-//   });
-
-//   if (!user) {
-//     console.log('Invalid reset code or expired'); // Log for debugging
-//     return next(new AppError('Reset code is invalid or has expired.', 400));
-//   }
-
-//   // 2) If code is valid, update the password
-//   user.password = req.body.password;
-//   user.passwordConfirm = req.body.passwordConfirm;
-//   user.passwordResetCode = undefined; // Clear the reset code
-//   user.passwordResetExpires = undefined; // Clear the expiration time
-
-//   await user.save();
-
-//   // 3) Send success response and possibly log the user in again (optional)
-//   res.status(200).json({
-//     status: 'success',
-//     message: 'Password has been reset successfully.',
-//   });
-// });

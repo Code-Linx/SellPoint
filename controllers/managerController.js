@@ -1,9 +1,11 @@
 /* eslint-disable no-unused-vars */
 const catchAsync = require('../utils/catchAsync');
 const Item = require('../model/itemModel');
+const Order = require('../model/orderModel');
 const Category = require('../model/categoryModel');
 const AppSettings = require('../model/settingModel');
 const getCurrencySymbol = require('../utils/currency');
+const Email = require('../utils/email');
 const AppError = require('../utils/appError');
 
 exports.updateCurrency = catchAsync(async (req, res, next) => {
@@ -301,6 +303,108 @@ exports.removeDeletedCategoryItem = catchAsync(async (req, res, next) => {
     message: 'Items associated with deleted categories have been removed',
     data: {
       deletedCount: result.deletedCount, // Return the number of deleted items
+    },
+  });
+});
+
+exports.getAllOrders = catchAsync(async (req, res, next) => {
+  const orders = await Order.find();
+
+  if (orders.length === 0) {
+    return res.status(200).json({
+      status: 'success',
+      message: 'No orders Yets.',
+    });
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: orders,
+  });
+});
+
+exports.getOrderById = catchAsync(async (req, res, next) => {
+  // Find the item by ID
+  const order = await Order.findById(req.params.id);
+
+  // Check if the order exists
+  if (!order) {
+    return next(new AppError('No order found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: order,
+  });
+});
+
+exports.getSalesStats = catchAsync(async (req, res, next) => {
+  const { startDate, endDate } = req.body;
+
+  // Validate that both dates are provided
+  if (!startDate || !endDate) {
+    return next(new AppError('Both startDate and endDate are required', 400));
+  }
+
+  // Parse dates
+  const parsedStartDate = new Date(startDate);
+  const parsedEndDate = new Date(endDate);
+
+  // Validate dates
+  if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
+    return next(new AppError('Invalid date format', 400));
+  }
+
+  // Fetch sales data and order history
+  const salesData = await Order.aggregate([
+    {
+      $match: {
+        createdAt: {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalSales: { $sum: '$total' },
+        totalOrders: { $sum: 1 },
+        orders: { $push: '$$ROOT' }, // Collect all orders in an array
+      },
+    },
+  ]);
+
+  // If no sales data found
+  if (salesData.length === 0) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'No sales data found for the specified period.',
+    });
+  }
+
+  // Prepare the email report
+  const reportData = {
+    totalSales: salesData[0].totalSales,
+    totalOrders: salesData[0].totalOrders,
+    orderHistory: salesData[0].orders, // Add order history to the report data
+  };
+
+  const email = new Email({ email: 'admin@example.com' }, null); // Replace with actual admin email
+  await email.sendSalesReport(
+    parsedStartDate,
+    parsedEndDate,
+    reportData.orderHistory,
+    reportData
+  );
+
+  // Respond with sales data
+  res.status(200).json({
+    status: 'success',
+    data: {
+      totalSales: reportData.totalSales,
+      totalOrders: reportData.totalOrders,
+      orderHistory: reportData.orderHistory, // Optionally include order history in the API response
     },
   });
 });

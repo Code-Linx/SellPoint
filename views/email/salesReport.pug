@@ -1,0 +1,78 @@
+doctype html
+html
+  head
+    title Sales Report
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        margin: 10px 0;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin: 5px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: white;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      tbody tr:hover {
+        background-color: #f1f1f1;
+      }
+      footer {
+        margin-top: 20px;
+        font-size: 0.9em;
+        color: #777;
+      }
+
+  body
+    h1 Sales Report
+    p Hello #{firstName},
+    p Here are the sales statistics for the period from #{startDate.toDateString()} to #{endDate.toDateString()}:
+    
+    ul
+      li Total Sales: $#{totalSales.toFixed(2)}
+      li Total Orders: #{totalOrders}
+
+    h2 Order History
+    if orderHistory.length > 0
+      table
+        thead
+          tr
+            th S/N
+            th Customer Name
+            th Total
+            th Date
+        tbody
+          each order, index in orderHistory
+            tr
+              td #{index + 1} 
+              td #{order.customerName} 
+              td $#{order.total.toFixed(2)}
+              td #{new Date(order.createdAt).toLocaleDateString()} 
+    else
+      p No orders found for this period.
+
+    footer
+      p Thank you for your business!
