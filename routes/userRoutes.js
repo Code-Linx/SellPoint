@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 const express = require('express');
 const authController = require('../controllers/authController');
 const cashierController = require('../controllers/cashierController');
