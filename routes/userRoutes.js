@@ -1,26 +1,25 @@
 /* eslint-disable no-unused-vars */
 const express = require('express');
 const authController = require('../controllers/authController');
-const adminController = require('../controllers/managerController');
 const cashierController = require('../controllers/cashierController');
 const router = express.Router();
 
 router.post('/register', authController.register);
 router.post(
-  '/resendCode',
+  '/resend-otp',
   authController.resendVerificationLimiter,
   authController.resendVerificationCode
 );
-router.post('/verifyEmail', authController.verifyEmail);
+router.post('/verify-email', authController.verifyEmail);
 router.post(
-  '/forgetPassword',
+  '/forget-password',
   authController.passwordResetLimiter,
   authController.resetpassword
 );
 
-router.post('/verifyResetCode', authController.verifyResetCode);
+router.post('/verify-password-reset-otp', authController.verifyResetCode);
 router.post(
-  '/resendPasswordCode',
+  '/resend-password-reset-otp',
   authController.passwordResetLimiter,
   authController.requestNewCode
 );
@@ -30,11 +29,14 @@ router.post('/signOut', authController.logout);
 router.use(authController.protect);
 router.use(authController.restrictTo('cashier'));
 //CASHIER ONLY ROUTE
-router.get('/cashierDashboard', cashierController.getCashierDashboardData);
-router.get('/fetchAllOrder', cashierController.getAllOrders);
-router.get('/fetchOrderById/:id', cashierController.getOrderById);
-router.get('/fetchAllItems', cashierController.getAllItems);
-router.post('/calculateOrder', cashierController.placeOrder);
-router.patch('/updateCashierData', cashierController.updateCashierDetails);
-router.patch('/updateCashierPassword', cashierController.updateCashierPassword);
+router.get('/cashier-dashboard', cashierController.getCashierDashboardData);
+router.get('/cashier-orders', cashierController.getAllOrders);
+router.get('/cashier/:id/order', cashierController.getOrderById);
+router.get('/items', cashierController.getAllItems);
+router.post('/new-order', cashierController.placeOrder);
+router.patch('/cashier-data', cashierController.updateCashierDetails);
+router.patch(
+  '/update-cashier-password',
+  cashierController.updateCashierPassword
+);
 module.exports = router;

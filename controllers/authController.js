@@ -103,7 +103,7 @@ exports.resendVerificationCode = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   // 5. Send the new verification code via email (or SMS, etc.)
-  //await new Email(user, newVerificationCode).sendEmailVerification(); // Implement the email sending logic
+  await new Email(user, newVerificationCode).sendEmailVerification(); // Implement the email sending logic
 
   // 6. Send a response back to the user
   res.status(200).json({

@@ -5,8 +5,8 @@
 const request = require('supertest');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const app = require('../app'); // Path to your main app file
-const User = require('../model/userModel'); // Import the User model
+const app = require('../app');
+const User = require('../model/userModel');
 
 // Before any tests, connect to the database
 beforeAll(async () => {
@@ -156,5 +156,86 @@ describe('Resend Verification Code', () => {
       'message',
       'There is no user with that email address.'
     );
+  });
+});
+
+describe('User Login', () => {
+  it('should log in an existing user with valid credentials', async () => {
+    // Step 1: Create a user to test logging in
+    const user = await User.create({
+      name: 'Test User',
+      email: 'testuser@example.com',
+      password: 'password123',
+      passwordConfirm: 'password123',
+      isVerified: true, // Ensure the user is verified
+    });
+
+    // Step 2: Send the login request
+    const res = await request(app).post('/api/v1/user/login').send({
+      email: user.email,
+      password: 'password123',
+    });
+
+    // Step 3: Assert the response
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('status', 'success');
+    expect(res.body).toHaveProperty('token'); // Assuming your createSendToken sends a token
+  });
+
+  it('should return an error if the email or password is not provided', async () => {
+    const res = await request(app)
+      .post('/api/v1/user/login')
+      .send({ email: 'testuser@example.com' }); // Missing password
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toHaveProperty(
+      'message',
+      'Please Provide Email and Password!'
+    );
+  });
+
+  it('should return an error if the user does not exist', async () => {
+    const res = await request(app)
+      .post('/api/v1/user/login')
+      .send({ email: 'nonexistent@example.com', password: 'password123' });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toHaveProperty('message', 'User Does not exist');
+  });
+
+  it('should return an error if the password is incorrect', async () => {
+    // Create a verified user
+    await User.create({
+      name: 'Test User',
+      email: 'testuser@example.com',
+      password: 'password123',
+      passwordConfirm: 'password123',
+      isVerified: true,
+    });
+
+    const res = await request(app)
+      .post('/api/v1/user/login')
+      .send({ email: 'testuser@example.com', password: 'wrongpassword' });
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toHaveProperty('message', 'Invalid credentials');
+  });
+
+  it('should return an error if the user email is not verified', async () => {
+    // Create a user who is not verified
+    await User.create({
+      name: 'Unverified User',
+      email: 'unverified@example.com',
+      password: 'password123',
+      passwordConfirm: 'password123',
+      isVerified: false,
+    });
+
+    const res = await request(app)
+      .post('/api/v1/user/login')
+      .send({ email: 'unverified@example.com', password: 'password123' });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toHaveProperty('message', 'Please verify your email');
   });
 });

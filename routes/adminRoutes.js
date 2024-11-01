@@ -6,23 +6,23 @@ const router = express.Router();
 
 router.post('/register', adminAuthController.register);
 router.post(
-  '/resendCode',
+  '/resend-otp',
   adminAuthController.resendVerificationLimiter,
   adminAuthController.resendVerificationCode
 );
-router.post('/verifyEmail', adminAuthController.verifyEmail);
+router.post('/verify-email', adminAuthController.verifyEmail);
 router.post('/login', adminAuthController.login);
 
 //ROUTES TO RESET PASSWORD/FORGET PASSWORD
 router.post(
-  '/forgetPassword',
+  '/forget-password',
   adminAuthController.passwordResetLimiter,
   adminAuthController.resetpassword
 );
 
-router.post('/verifyResetCode', adminAuthController.verifyResetCode);
+router.post('/verify-password-reset-otp', adminAuthController.verifyResetCode);
 router.post(
-  '/resendPasswordCode',
+  '/resend-password-reset-otp',
   adminAuthController.passwordResetLimiter,
   adminAuthController.requestNewCode
 );
@@ -31,28 +31,28 @@ router.post(
 router.use(adminAuthController.protect);
 // ================== Admin Routes ==================
 router.use(adminAuthController.restrictTo('admin'));
-router.get('/getAllItems', adminController.getItems);
-router.get('/fetchAllCashiers', adminController.getAllCashier);
-router.get('/fechAllOrders', adminController.getAllOrders);
-router.get('/fetchItemById/:id', adminController.getitemByID);
+router.get('/items', adminController.getItems);
+router.get('/cashiers', adminController.getAllCashier);
+router.get('/orders', adminController.getAllOrders);
+router.get('/:id/item', adminController.getitemByID);
 router.get('/deleted-categories', adminController.getDeletedCategories);
 router.get('/deteled-categories-item', adminController.getDeletedcategoryItem);
-router.get('/fetchOrderByID/:id', adminController.getOrderById);
-router.get('/fetchAdminDashBoard', adminController.getAdminDashboard);
+router.get('/:id/order', adminController.getOrderById);
+router.get('/admin-dashboard', adminController.getAdminDashboard);
 
-router.post('/createNewItem', adminController.addNewItem);
-router.post('/createNewCategory', adminController.addCategory);
-router.post('/fecthSalesStats', adminController.getSalesStats);
+router.post('/new-item', adminController.addNewItem);
+router.post('/new-category', adminController.addCategory);
+router.post('/sales-stats', adminController.getSalesStats);
 
-router.patch('/updateCurrency', adminController.updateCurrency);
-router.patch('/updateitemByID/:id', adminController.updateItem);
-router.patch('/updatecategoryByID/:id', adminController.updateCategory);
-router.patch('/deletecategoryByID/:id', adminController.deleteCategory);
-router.patch('/editAdminProfile', adminController.updateAdminDetails);
-router.patch('/updateAdminPassword', adminController.updateAdminPassword);
+router.patch('/update-currency', adminController.updateCurrency);
+router.patch('/update/:id/item', adminController.updateItem);
+router.patch('/update/:id/category', adminController.updateCategory);
+router.patch('/delete/:id/category', adminController.deleteCategory);
+router.patch('/edit-admin-profile', adminController.updateAdminDetails);
+router.patch('/update-admin-password', adminController.updateAdminPassword);
 
-router.delete('/deleteItemByID/:id', adminController.deleteItem);
-router.delete('/deleteCashier/:id', adminController.deleteCashier);
+router.delete('/delete/:id/item', adminController.deleteItem);
+router.delete('/delete/:id/Cashier', adminController.deleteCashier);
 router.delete(
   '/remove-deleted-categories-item',
   adminController.removeDeletedCategoryItem

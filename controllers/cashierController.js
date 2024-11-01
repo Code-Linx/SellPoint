@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const Order = require('../model/orderModel');
 const bcrypt = require('bcryptjs');
 const catchAsync = require('../utils/catchAsync');
