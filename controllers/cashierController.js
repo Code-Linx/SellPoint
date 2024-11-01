@@ -1,6 +1,8 @@
 const Order = require('../model/orderModel');
+const bcrypt = require('bcryptjs');
 const catchAsync = require('../utils/catchAsync');
 const Item = require('../model/itemModel');
+const User = require('../model/userModel');
 const getCurrencySymbol = require('../utils/currency');
 const AppSettings = require('../model/settingModel');
 const AppError = require('../utils/appError');
@@ -149,5 +151,96 @@ exports.getOrderById = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     data: responseData,
+  });
+});
+
+exports.updateCashierDetails = catchAsync(async (req, res, next) => {
+  const { name, email } = req.body;
+
+  // Update only the allowed fields
+  const updatedCashier = await User.findByIdAndUpdate(
+    req.user._id,
+    { name, email },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedCashier) {
+    return next(new AppError('Cashier not found', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { cashier: updatedCashier },
+  });
+});
+
+exports.updateCashierPassword = catchAsync(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // Find the cashier by ID and check the current password
+  const cashier = await User.findById(req.user._id).select('+password');
+  if (!cashier || !(await bcrypt.compare(currentPassword, cashier.password)))
+    return next(new AppError('Current password is incorrect', 401));
+
+  // Update the password
+  cashier.password = newPassword;
+  await cashier.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Password updated successfully',
+  });
+});
+
+exports.getAllItems = catchAsync(async (req, res, next) => {
+  // 1. Filtering
+  const queryObj = { ...req.query };
+  const excludedFields = ['page', 'sort', 'limit', 'fields'];
+  excludedFields.forEach((el) => delete queryObj[el]);
+
+  // Advanced filtering (for greater than, less than, etc.)
+  let queryStr = JSON.stringify(queryObj);
+  queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+
+  // Initialize the query with basic filters
+  let query = Item.find(JSON.parse(queryStr));
+
+  // 2. Search by category ID
+  if (req.query.categoryId) {
+    query = query.find({ category: req.query.categoryId }); // Assuming category is an ObjectId field
+  }
+
+  // 3. Sorting by price (lowest to highest)
+  if (req.query.sort) {
+    const sortBy = req.query.sort.split(',').join(' ');
+    query = query.sort(sortBy);
+  } else {
+    query = query.sort('price'); // Default to sort by price ascending
+  }
+
+  // 4. Field Limiting
+  if (req.query.fields) {
+    const fields = req.query.fields.split(',').join(' ');
+    query = query.select(fields);
+  } else {
+    query = query.select('-__v'); // Exclude some internal fields by default
+  }
+
+  // 5. Pagination
+  const page = req.query.page * 1 || 1; // Convert to number or default to 1
+  const limit = req.query.limit * 1 || 10; // Convert to number or default to 10
+  const skip = (page - 1) * limit;
+  query = query.skip(skip).limit(limit);
+
+  // Execute the query
+  const items = await query;
+
+  // Respond with paginated results
+  res.status(200).json({
+    status: 'success',
+    results: items.length,
+    data: {
+      items,
+    },
   });
 });

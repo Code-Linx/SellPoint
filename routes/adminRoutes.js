@@ -29,14 +29,16 @@ router.post(
 
 //PROTECTED ROUTES
 router.use(adminAuthController.protect);
-//ADMIN ONLY ROUTES
+// ================== Admin Routes ==================
 router.use(adminAuthController.restrictTo('admin'));
 router.get('/getAllItems', adminController.getItems);
+router.get('/fetchAllCashiers', adminController.getAllCashier);
 router.get('/fechAllOrders', adminController.getAllOrders);
 router.get('/fetchItemById/:id', adminController.getitemByID);
 router.get('/deleted-categories', adminController.getDeletedCategories);
 router.get('/deteled-categories-item', adminController.getDeletedcategoryItem);
 router.get('/fetchOrderByID/:id', adminController.getOrderById);
+router.get('/fetchAdminDashBoard', adminController.getAdminDashboard);
 
 router.post('/createNewItem', adminController.addNewItem);
 router.post('/createNewCategory', adminController.addCategory);
@@ -46,8 +48,11 @@ router.patch('/updateCurrency', adminController.updateCurrency);
 router.patch('/updateitemByID/:id', adminController.updateItem);
 router.patch('/updatecategoryByID/:id', adminController.updateCategory);
 router.patch('/deletecategoryByID/:id', adminController.deleteCategory);
+router.patch('/editAdminProfile', adminController.updateAdminDetails);
+router.patch('/updateAdminPassword', adminController.updateAdminPassword);
 
 router.delete('/deleteItemByID/:id', adminController.deleteItem);
+router.delete('/deleteCashier/:id', adminController.deleteCashier);
 router.delete(
   '/remove-deleted-categories-item',
   adminController.removeDeletedCategoryItem

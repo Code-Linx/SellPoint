@@ -1,12 +1,37 @@
 /* eslint-disable no-unused-vars */
 const catchAsync = require('../utils/catchAsync');
+const Admin = require('../model/adminModel');
+const User = require('../model/userModel');
 const Item = require('../model/itemModel');
 const Order = require('../model/orderModel');
 const Category = require('../model/categoryModel');
 const AppSettings = require('../model/settingModel');
 const getCurrencySymbol = require('../utils/currency');
+const bcrypt = require('bcryptjs');
 const Email = require('../utils/email');
 const AppError = require('../utils/appError');
+
+exports.getAllCashier = catchAsync(async (req, res, next) => {
+  const user = await User.find();
+  if (!user) return next(new AppError('No user Found', 404));
+
+  res.status(200).json({
+    status: 'success',
+    result: user.length,
+    data: {
+      user,
+    },
+  });
+});
+
+exports.deleteCashier = catchAsync(async (req, res, next) => {
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) return next(new AppError('No user with that ID', 404));
+  res.status(204).json({
+    status: 'success',
+    data: null,
+  });
+});
 
 exports.updateCurrency = catchAsync(async (req, res, next) => {
   // Update the currency setting
@@ -406,5 +431,78 @@ exports.getSalesStats = catchAsync(async (req, res, next) => {
       totalOrders: reportData.totalOrders,
       orderHistory: reportData.orderHistory, // Optionally include order history in the API response
     },
+  });
+});
+
+exports.getAdminDashboard = catchAsync(async (req, res, next) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset to start of the day
+
+  // Queries for the required metrics
+  const [totalUsers, totalOrders, totalRevenue, newUsersToday, newOrdersToday] =
+    await Promise.all([
+      User.countDocuments(), // Total number of users
+      Order.countDocuments(), // Total number of orders
+      Order.aggregate([
+        { $group: { _id: null, totalRevenue: { $sum: '$total' } } },
+      ]), // Total revenue
+      User.countDocuments({ createdAt: { $gte: today } }), // New users today
+      Order.countDocuments({ createdAt: { $gte: today } }), // New orders today
+    ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      totalUsers,
+      totalOrders,
+      totalRevenue: totalRevenue[0]?.totalRevenue || 0,
+      newUsersToday,
+      newOrdersToday,
+    },
+  });
+});
+
+exports.updateAdminDetails = catchAsync(async (req, res, next) => {
+  // Fields allowed to be updated
+  const { name, email } = req.body;
+
+  // Only allow updating name, email, and phone (not password or sensitive fields)
+  const updatedAdmin = await Admin.findByIdAndUpdate(
+    req.user._id,
+    { name, email },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedAdmin) {
+    return res.status(404).json({ status: 'fail', message: 'Admin not found' });
+  }
+
+  //await updatedAdmin.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: 'success',
+    data: { admin: updatedAdmin },
+  });
+});
+
+exports.updateAdminPassword = catchAsync(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // Find the admin by ID and check the current password
+  const admin = await Admin.findById(req.user._id).select('+password');
+  if (!admin || !(await bcrypt.compare(currentPassword, admin.password))) {
+    return res.status(401).json({
+      status: 'fail',
+      message: 'Current password is incorrect',
+    });
+  }
+
+  // Update the password
+  admin.password = newPassword;
+  await admin.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Password updated successfully',
   });
 });

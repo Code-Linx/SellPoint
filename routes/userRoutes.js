@@ -33,6 +33,8 @@ router.use(authController.restrictTo('cashier'));
 router.get('/cashierDashboard', cashierController.getCashierDashboardData);
 router.get('/fetchAllOrder', cashierController.getAllOrders);
 router.get('/fetchOrderById/:id', cashierController.getOrderById);
+router.get('/fetchAllItems', cashierController.getAllItems);
 router.post('/calculateOrder', cashierController.placeOrder);
-
+router.patch('/updateCashierData', cashierController.updateCashierDetails);
+router.patch('/updateCashierPassword', cashierController.updateCashierPassword);
 module.exports = router;
