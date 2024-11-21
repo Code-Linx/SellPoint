@@ -10,6 +10,10 @@ const userRouter = require('./routes/userRoutes');
 const adminRouter = require('./routes/adminRoutes');
 const passport = require('passport');
 const passportConfig = require('./passportConfig');
+//SECURITY
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
 const app = express();
 
 app.use(express.json());
@@ -25,6 +29,16 @@ if ((process.env.NODE_ENV = 'development')) {
   app.use(morgan('dev'));
 }
 
+app.use(helmet());
+
+app.use(mongoSanitize());
+
+// Limit requests from same API
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many requests from this IP, please try again in an hour!',
+});
 // Initialize passport
 app.use(passport.initialize());
 
