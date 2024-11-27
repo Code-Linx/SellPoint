@@ -16,6 +16,7 @@
   "author": "Dennis",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
@@ -30,7 +31,8 @@
     "nodemailer": "^6.9.15",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "pug": "^3.0.3"
+    "pug": "^3.0.3",
+    "stripe": "^17.4.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",

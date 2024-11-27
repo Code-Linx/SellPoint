@@ -10,6 +10,8 @@ const userRouter = require('./routes/userRoutes');
 const adminRouter = require('./routes/adminRoutes');
 const passport = require('passport');
 const passportConfig = require('./passportConfig');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 //SECURITY
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -29,6 +31,7 @@ if ((process.env.NODE_ENV = 'development')) {
   app.use(morgan('dev'));
 }
 
+//Helmet middleware to secure HTTP headers
 app.use(helmet());
 
 app.use(mongoSanitize());
@@ -39,6 +42,7 @@ const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!',
 });
+
 // Initialize passport
 app.use(passport.initialize());
 
@@ -47,6 +51,10 @@ passportConfig(passport);
 
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use(
+  '/webhook',
+  express.raw({ type: 'application/json' }) // Ensure raw body for this route
+);
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });

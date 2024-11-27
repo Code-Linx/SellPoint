@@ -1,6 +1,8 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const cashierController = require('../controllers/cashierController');
+//const stripeController = require('../controllers/stripeController');
+const paystackController = require('../controllers/paystackController');
 const router = express.Router();
 
 router.post('/register', authController.register);
@@ -38,4 +40,13 @@ router.patch(
   '/update-cashier-password',
   cashierController.updateCashierPassword
 );
+
+router.post('/initiate-payment', paystackController.initiatePayment);
+router.post(
+  '/webhook',
+  paystackController.rawBodyMiddleware,
+  paystackController.paystackWebhook
+);
+router.post('/place-order', paystackController.placeOrder);
+
 module.exports = router;
