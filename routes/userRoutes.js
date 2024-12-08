@@ -26,6 +26,7 @@ router.post(
 );
 router.post('/login', authController.login);
 router.post('/signOut', authController.logout);
+
 //PROTECTED ROUTES
 router.use(authController.protect);
 router.use(authController.restrictTo('cashier'));
@@ -40,13 +41,8 @@ router.patch(
   '/update-cashier-password',
   cashierController.updateCashierPassword
 );
-
+//PAYSTACK API ROUTES
 router.post('/initiate-payment', paystackController.initiatePayment);
-router.post(
-  '/webhook',
-  paystackController.rawBodyMiddleware,
-  paystackController.paystackWebhook
-);
-router.post('/place-order', paystackController.placeOrder);
+router.get('/verify-payment/:reference', paystackController.verifyPayment);
 
 module.exports = router;

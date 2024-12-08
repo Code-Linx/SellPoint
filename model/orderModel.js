@@ -42,6 +42,12 @@ const orderSchema = new mongoose.Schema({
       message: (props) => `${props.value} is not a valid email address!`,
     },
   },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'failed', 'success'], // Allowed values for payment status
+    default: 'pending', // Default status is 'pending'
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

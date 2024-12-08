@@ -8,6 +8,7 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const userRouter = require('./routes/userRoutes');
 const adminRouter = require('./routes/adminRoutes');
+const webhookRouter = require('./routes/webhookRoutes');
 const passport = require('passport');
 const passportConfig = require('./passportConfig');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -51,10 +52,8 @@ passportConfig(passport);
 
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/admin', adminRouter);
-app.use(
-  '/webhook',
-  express.raw({ type: 'application/json' }) // Ensure raw body for this route
-);
+// Paystack webhook route
+app.use('/api/v1/payment', webhookRouter);
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });

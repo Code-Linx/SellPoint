@@ -4,6 +4,7 @@ const getCurrencySymbol = (currencyCode) => {
     EUR: '€',
     GBP: '£',
     JPY: '¥',
+    NGN: '₦',
     // Add other currency codes and symbols as needed
   };
 
