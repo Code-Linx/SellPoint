@@ -227,7 +227,6 @@ exports.verifyPayment = catchAsync(async (req, res, next) => {
         customerName,
         customerEmail,
         cashier: req.user._id, // Assuming `req.user` is set for authenticated users
-
         paymentStatus,
       });
 
@@ -269,3 +268,72 @@ exports.verifyPayment = catchAsync(async (req, res, next) => {
     return next(new AppError('Payment verification failed.', 500));
   }
 });
+
+exports.paystackTranscationList = async (req, res) => {
+  try {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    const response = await axios.get('https://api.paystack.co/transaction', {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+      },
+    });
+
+    // Check if the response contains data
+    if (response.data && response.data.data) {
+      const transactions = response.data.data;
+      res.status(200).json({
+        status: 'success',
+        message: 'Transactions retrieved successfully.',
+        data: transactions,
+      });
+    } else {
+      res.status(404).json({
+        status: 'error',
+        message: 'No transactions found.',
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching transactions:', error.message);
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while fetching transactions.',
+    });
+  }
+};
+
+exports.refundPayment = async (req, res) => {
+  try {
+    const transactionReference = req.params.transactionReference;
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    const response = await axios.post(
+      `https://api.paystack.co/refund`,
+      { transaction: transactionReference },
+      {
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Refund processed successfully.',
+      data: response.data.data,
+    });
+  } catch (error) {
+    console.error(
+      'Error processing refund:',
+      error.response?.data || error.message
+    );
+    res.status(error.response?.status || 500).json({
+      status: 'error',
+      message:
+        error.response?.data?.message ||
+        'An error occurred while processing the refund.',
+      details: error.response?.data,
+    });
+  }
+};

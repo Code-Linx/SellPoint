@@ -44,5 +44,10 @@ router.patch(
 //PAYSTACK API ROUTES
 router.post('/initiate-payment', paystackController.initiatePayment);
 router.get('/verify-payment/:reference', paystackController.verifyPayment);
+router.get('/transcation-list', paystackController.paystackTranscationList);
+router.post(
+  '/paystack/:transactionReference/refund/',
+  paystackController.refundPayment
+);
 
 module.exports = router;
